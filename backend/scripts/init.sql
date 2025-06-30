@@ -1,0 +1,2 @@
+CREATE DATABASE IF NOT EXISTS splitwise;
+USE splitwise;
