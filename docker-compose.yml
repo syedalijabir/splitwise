@@ -1,0 +1,40 @@
+services:
+  web:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    environment:
+      - BACKEND_URL=http://localhost:5001
+    volumes:
+      - ./frontend:/app
+      - /frontend/node_modules
+
+  api:
+    build: ./backend
+    ports:
+      - "5001:5000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=admin
+      - DB_NAME=splitwise
+      - DB_PORT=5432
+    volumes:
+      - ./backend:/app
+
+  db:
+    image: mysql:9.3.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+    ports:
+      - "5400:5432"
+    volumes:
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  mysqldata:
