@@ -1,10 +1,12 @@
 from flask import Flask
 import logging
+from auth import auth
 from flask_cors import CORS
 
 
 # Create the Flask app
 app = Flask(__name__)
+app.register_blueprint(auth, url_prefix='/api')
 CORS(app)
 
 
