@@ -62,4 +62,13 @@ def login():
     cursor.close()
     conn.close()
 
-    return jsonify({'token': token, 'user': {'id': user['ID'], 'name': user['Name'], 'email': user['Email']}})
+    return jsonify(
+        {
+            'token': token, 
+            'user': {
+                'id': user['ID'], 
+                'name': user['Name'], 
+                'email': user['Email']
+            }
+        }
+    )
