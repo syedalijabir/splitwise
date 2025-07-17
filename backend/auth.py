@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from db import get_connection
+from utils.db import get_connection
 import bcrypt
 import jwt
 import os
