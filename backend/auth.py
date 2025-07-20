@@ -3,6 +3,9 @@ from utils.db import get_connection
 import bcrypt
 import jwt
 import os
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 auth = Blueprint('auth', __name__)
 SECRET_KEY = os.getenv('JWT_SECRET')
