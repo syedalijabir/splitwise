@@ -2,11 +2,17 @@ from flask import Flask
 import logging
 from auth import auth
 from flask_cors import CORS
+from groups import groups
+from friends import friends
 
+from utils.logger import get_logger
+logger = get_logger(__name__)
 
-# Create the Flask app
+URL_PREFIX='/api'
 app = Flask(__name__)
-app.register_blueprint(auth, url_prefix='/api')
+app.register_blueprint(auth, url_prefix=URL_PREFIX)
+app.register_blueprint(groups, url_prefix=URL_PREFIX)
+app.register_blueprint(friends, url_prefix=URL_PREFIX)
 CORS(app)
 
 
