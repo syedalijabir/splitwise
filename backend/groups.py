@@ -338,3 +338,46 @@ def get_group_balances(group_id):
         cursor.close()
         conn.close()
 
+
+@groups.route('/groups/<int:group_id>/settle', methods=['POST'])
+def settle_between_users(group_id):
+    current_user_id = get_user_id_from_token()
+    if not current_user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    from_user = data.get('from_user_id')
+    to_user = data.get('to_user_id')
+    amount = data.get('amount')
+
+    if not from_user or not to_user or not amount:
+        return jsonify({'error': 'Missing fields'}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Validate both users are in group
+        cursor.execute("""
+            SELECT COUNT(*) FROM GroupMembers
+            WHERE GroupID = %s AND UserID IN (%s, %s)
+        """, (group_id, from_user, to_user))
+        count = cursor.fetchone()[0]
+        if count < 2:
+            return jsonify({'error': 'Both users must be in the group'}), 400
+
+        cursor.execute("""
+            INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+            VALUES (%s, %s, %s, %s)
+        """, (group_id, from_user, to_user, amount))
+
+        conn.commit()
+        return jsonify({'message': 'Settlement recorded'}), 201
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"Error settling: {str(e)}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
