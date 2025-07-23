@@ -192,7 +192,6 @@ def add_expense(group_id):
     cursor = conn.cursor()
 
     try:
-        # Check if group exists
         cursor.execute("SELECT ID FROM ExpenseGroups WHERE ID = %s", (group_id,))
         if cursor.fetchone() is None:
             return jsonify({'error': 'Group not found'}), 404
@@ -205,7 +204,6 @@ def add_expense(group_id):
         if cursor.fetchone() is None:
             return jsonify({'error': 'Unauthorized: You are not a member of this group'}), 403
 
-        # Check if 'paid_by' user is also a member of the group
         cursor.execute("""
             SELECT 1 FROM GroupMembers
             WHERE GroupID = %s AND UserID = %s
@@ -340,58 +338,3 @@ def get_group_balances(group_id):
         cursor.close()
         conn.close()
 
-
-@groups.route('/groups/<int:group_id>/settle', methods=['POST'])
-def settle_debt(group_id):
-    current_user_id = get_user_id_from_token()
-    if not current_user_id:
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    from_user = data['from_user_id']
-    to_user = data['to_user_id']
-    amount = float(data['amount'])
-
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT COUNT(*) FROM GroupMembers
-                WHERE GroupID = %s AND UserID IN (%s, %s)
-            """, (group_id, from_user, to_user))
-            member_count = cur.fetchone()[0]
-
-            if member_count < 2:
-                return jsonify({"error": "Users must both be members of the group"}), 400
-            
-            cur.execute("""
-                INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (
-                group_id,
-                from_user,
-                'Settlement',
-                f'Settlement from user {from_user} to user {to_user}',
-                amount
-            ))
-
-            expense_id = cur.lastrowid
-
-            # Insert into ExpenseSplits: make to_user owe the full amount
-            cur.execute("""
-                INSERT INTO ExpenseSplits (ExpenseID, UserID, Amount)
-                VALUES (%s, %s, %s)
-            """, (expense_id, to_user, amount))
-
-            conn.commit()
-
-        return jsonify({
-            "message": "Settlement recorded as an expense",
-            "expense_id": expense_id
-        }), 200
-
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
