@@ -315,7 +315,21 @@ def get_group_balances(group_id):
                     continue
                 balances[member_id][paid_by] += share
 
-        # settle debts
+        # Calculate any settlements among group users
+        cursor.execute("""
+            SELECT FromUserID, ToUserID, Amount
+            FROM Settlements
+            WHERE GroupID = %s
+        """, (group_id,))
+        settle_records = cursor.fetchall()
+
+        for record in settle_records:
+            from_user = record['FromUserID']
+            to_user = record['ToUserID']
+            amount = float(record['Amount'])
+            balances[from_user][to_user] -= amount
+
+        # net balances logic
         settlements = []
         for debtor in member_ids:
             for creditor in member_ids:
