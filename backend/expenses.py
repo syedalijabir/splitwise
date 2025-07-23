@@ -18,21 +18,64 @@ def get_user_expenses_across_groups():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Fetch expenses from all groups where user is a member
+        # Get all group IDs the user is a part of
         cursor.execute("""
-            SELECT e.ID, e.Name, e.Description, e.Amount, e.CreatedAt,
-                   u.Name AS PaidBy, g.Name AS GroupName
+            SELECT GroupID FROM GroupMembers WHERE UserID = %s
+        """, (current_user_id,))
+        group_ids = [row['GroupID'] for row in cursor.fetchall()]
+
+        if not group_ids:
+            return jsonify([]), 200
+
+        format_strings = ','.join(['%s'] * len(group_ids))
+
+        # getch all expenses
+        cursor.execute(f"""
+            SELECT
+                e.ID AS EntryID,
+                'expense' AS Type,
+                e.Name,
+                e.Description,
+                e.Amount,
+                e.CreatedAt,
+                u.Name AS PaidBy,
+                NULL AS FromUser,
+                NULL AS ToUser,
+                g.Name AS GroupName
             FROM Expenses e
             JOIN Users u ON e.PaidBy = u.ID
             JOIN ExpenseGroups g ON e.GroupID = g.ID
-            WHERE e.GroupID IN (
-                SELECT GroupID FROM GroupMembers WHERE UserID = %s
-            )
-            ORDER BY e.CreatedAt DESC
-        """, (current_user_id,))
-        
+            WHERE e.GroupID IN ({format_strings})
+        """, tuple(group_ids))
         expenses = cursor.fetchall()
-        return jsonify(expenses), 200
+
+        # get settlements involving the user
+        cursor.execute(f"""
+            SELECT
+                s.ID AS EntryID,
+                'settlement' AS Type,
+                NULL AS Name,
+                CONCAT('Settlement from ', u1.Name, ' to ', u2.Name) AS Description,
+                s.Amount,
+                s.CreatedAt,
+                NULL AS PaidBy,
+                u1.Name AS FromUser,
+                u2.Name AS ToUser,
+                g.Name AS GroupName
+            FROM Settlements s
+            JOIN Users u1 ON s.FromUserID = u1.ID
+            JOIN Users u2 ON s.ToUserID = u2.ID
+            JOIN ExpenseGroups g ON s.GroupID = g.ID
+            WHERE s.GroupID IN ({format_strings})
+              AND (s.FromUserID = %s OR s.ToUserID = %s)
+        """, tuple(group_ids + [current_user_id, current_user_id]))
+        settlements = cursor.fetchall()
+
+        # merge and sort in chronological order
+        combined = expenses + settlements
+        combined.sort(key=lambda x: x['CreatedAt'], reverse=True)
+
+        return jsonify(combined), 200
 
     except Exception as e:
         logger.error(f"Error fetching user's expenses across groups: {str(e)}")
@@ -52,7 +95,7 @@ def get_user_global_balance():
     cursor = conn.cursor(dictionary=True)
 
     try:
-        # Get all groups user is in
+        # all group IDs the user belongs to
         cursor.execute("""
             SELECT GroupID FROM GroupMembers WHERE UserID = %s
         """, (current_user_id,))
@@ -64,16 +107,17 @@ def get_user_global_balance():
                 "details": []
             }), 200
 
-        # Get all members of each group
-        cursor.execute("""
+        format_strings = ','.join(['%s'] * len(group_ids))
+
+        # all members in those groups
+        cursor.execute(f"""
             SELECT gm.GroupID, gm.UserID, u.Name
             FROM GroupMembers gm
             JOIN Users u ON gm.UserID = u.ID
-            WHERE gm.GroupID IN (%s)
-        """ % ','.join(['%s'] * len(group_ids)), group_ids)
+            WHERE gm.GroupID IN ({format_strings})
+        """, group_ids)
         member_data = cursor.fetchall()
 
-        # Map group_id -> list of member IDs
         group_members = {}
         user_names = {}
         for row in member_data:
@@ -83,15 +127,16 @@ def get_user_global_balance():
             user_names[uid] = uname
             group_members.setdefault(gid, []).append(uid)
 
-        # Get all expenses
-        cursor.execute("""
-            SELECT ID, GroupID, PaidBy, Amount FROM Expenses
-            WHERE GroupID IN (%s)
-        """ % ','.join(['%s'] * len(group_ids)), group_ids)
+        # all the expenses in those groups
+        cursor.execute(f"""
+            SELECT ID, GroupID, PaidBy, Amount
+            FROM Expenses
+            WHERE GroupID IN ({format_strings})
+        """, group_ids)
         expenses = cursor.fetchall()
 
-        # Calculate per-expense debts
-        balances = {}  # balances[from_user][to_user] = amount
+        # debts from expenses
+        balances = {}
         for expense in expenses:
             gid = expense['GroupID']
             payer = expense['PaidBy']
@@ -105,6 +150,30 @@ def get_user_global_balance():
                 balances.setdefault(member, {}).setdefault(payer, 0)
                 balances[member][payer] += share
 
+        # settlements in those groups involving current_user
+        cursor.execute(f"""
+            SELECT GroupID, FromUserID, ToUserID, Amount
+            FROM Settlements
+            WHERE GroupID IN ({format_strings})
+              AND (FromUserID = %s OR ToUserID = %s)
+        """, group_ids + [current_user_id, current_user_id])
+        settlements = cursor.fetchall()
+
+        # subtacting settlements from balances
+        for settlement in settlements:
+            from_user = settlement['FromUserID']
+            to_user = settlement['ToUserID']
+            amount = settlement['Amount']
+
+            if balances.get(from_user, {}).get(to_user):
+                balances[from_user][to_user] -= amount
+                if balances[from_user][to_user] <= 0:
+                    del balances[from_user][to_user]
+            else:
+                balances.setdefault(to_user, {}).setdefault(from_user, 0)
+                balances[to_user][from_user] -= amount
+
+        # net balances involving current user
         total_owed_by_user = 0.0
         total_owed_to_user = 0.0
         details = []
