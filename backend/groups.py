@@ -313,7 +313,7 @@ def get_group_balances(group_id):
             for member_id in member_ids:
                 if member_id == paid_by:
                     continue
-                balances[member_id][paid_by] += share
+                balances[member_id][paid_by] += float(share)
 
         # Calculate any settlements among group users
         cursor.execute("""
@@ -326,8 +326,8 @@ def get_group_balances(group_id):
         for record in settle_records:
             from_user = record['FromUserID']
             to_user = record['ToUserID']
-            amount = float(record['Amount'])
-            balances[from_user][to_user] -= amount
+            amount = record['Amount']
+            balances[from_user][to_user] -= float(amount)
 
         # net balances logic
         settlements = []
