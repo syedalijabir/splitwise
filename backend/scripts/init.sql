@@ -124,6 +124,32 @@ CREATE TABLE IF NOT EXISTS Expenses (
     FOREIGN KEY (PaidBy) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+-- Roommates NYC (GroupID = 1), members: Alice(1), Eve(5), Isabel(9), Mia(13)
+INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
+VALUES
+(1, 1, 'Groceries', 'Weekly groceries from Trader Joes', 120.00),
+(1, 5, 'Utilities', 'Electricity and water bill', 80.00),
+(1, 9, 'Internet', 'Monthly WiFi charges', 60.00);
+
+-- College Reunion Trip (GroupID = 2), members: Bob(2), Frank(6), Jack(10), Noah(14)
+INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
+VALUES
+(2, 2, 'Hotel Booking', '3 nights stay', 400.00),
+(2, 6, 'Dinner', 'Group dinner at restaurant', 160.00),
+(2, 10, 'Gas', 'Road trip fuel costs', 80.00);
+
+-- Family Vacation (GroupID = 3), members: Charlie(3), Grace(7), Karen(11), Olivia(15)
+INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
+VALUES
+(3, 3, 'Airbnb', 'Entire home rental', 500.00),
+(3, 7, 'Theme Park Tickets', 'Entry for 4 adults', 280.00);
+
+-- Office Pizza Party (GroupID = 4), members: David(4), Henry(8), Liam(12), Paul(16)
+INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
+VALUES
+(4, 4, 'Pizza & Sodas', 'Ordered from Dominos', 100.00),
+(4, 8, 'Decorations', 'Balloons, streamers, cups', 40.00);
+
 
 CREATE TABLE IF NOT EXISTS Settlements (
     ID INT AUTO_INCREMENT PRIMARY KEY,
@@ -136,4 +162,31 @@ CREATE TABLE IF NOT EXISTS Settlements (
     FOREIGN KEY (FromUserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (ToUserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+-- Settlements for Roommates NYC (GroupID = 1)
+-- Eve (5) paid Alice (1) back $30
+INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+VALUES (1, 5, 1, 30.00);
+
+-- Isabel (9) paid Alice (1) $30
+INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+VALUES (1, 9, 1, 30.00);
+
+-- Settlements for College Reunion Trip (GroupID = 2)
+-- Frank (6) paid Bob (2) $100
+INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+VALUES (2, 6, 2, 100.00);
+
+-- Jack (10) paid Bob (2) $100
+INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+VALUES (2, 10, 2, 100.00);
+
+-- Settlements for Office Pizza Party (GroupID = 4)
+-- Liam (12) paid David (4) $20
+INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+VALUES (4, 12, 4, 20.00);
+
+-- Paul (16) paid Henry (8) $10
+INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
+VALUES (4, 16, 8, 10.00);
 
