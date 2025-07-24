@@ -148,9 +148,12 @@ def get_group_members(group_id):
 
         # Check if current user is a member of the group
         cursor.execute("""
-            SELECT 1 FROM GroupMembers
-            WHERE GroupID = %s AND UserID = %s
-        """, (group_id, current_user_id))
+            SELECT 1
+            FROM ExpenseGroups g
+            LEFT JOIN GroupMembers gm ON g.ID = gm.GroupID AND gm.UserID = %s
+            WHERE g.ID = %s AND (g.CreatedBy = %s OR gm.UserID = %s)
+        """, (current_user_id, group_id, current_user_id, current_user_id))
+
         
         if cursor.fetchone() is None:
             return jsonify({'error': 'Forbidden: You are not a member of this group'}), 403
