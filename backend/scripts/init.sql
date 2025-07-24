@@ -76,6 +76,47 @@ INSERT INTO GroupMembers (GroupID, UserID) VALUES
 INSERT INTO GroupMembers (GroupID, UserID) VALUES
 (4, 4), (4, 8), (4, 12), (4, 16);
 
+-- Additional
+-- Alice Smith (1) is already in Roommates NYC (1), her friends include Bob (2), Charlie (3), and David (4)
+-- All three are in different groups, so we can add Alice to those groups
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(2, 1),  -- Alice joins Bob's group
+(3, 1),  -- Alice joins Charlie's group
+(4, 1);  -- Alice joins David's group
+
+-- Bob Johnson (2) is already in College Reunion Trip (2), is friends with Alice (1) and Eve (5)
+-- Alice is in Group 1, so Bob can join it
+-- Eve is not in any group Bob isn't already in, skip for now
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(1, 2);
+
+-- Charlie Rose (3) is in Family Vacation (3), friends with Alice (1), Frank (6), Grace (7)
+-- Alice is in 1 and 2, Frank and Grace aren't yet shared in groups
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(1, 3),  -- With Alice
+(2, 3);  -- With Alice again
+
+-- David Green (4) is in Office Pizza Party (4), friends with Alice (1), Henry (8), Isabel (9)
+-- Alice is in 1–4, so David can join 1–3
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(1, 4), (2, 4), (3, 4);
+
+-- Grace Lee (7) is friends with Charlie (3), in 2 and 3
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(2, 7);
+
+-- Henry Clark (8) is friends with David (4), David is in 1–4 now
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(1, 8), (2, 8);
+
+-- Isabel Young (9) is friends with David (4)
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(2, 9), (3, 9);
+
+-- Quinn Bell (17) is friends with Paul (16), Paul is in Office Pizza Party (4)
+INSERT INTO GroupMembers (GroupID, UserID) VALUES
+(4, 17);
+
 
 CREATE TABLE IF NOT EXISTS Friends (
     ID INT AUTO_INCREMENT PRIMARY KEY,
