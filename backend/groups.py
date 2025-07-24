@@ -44,15 +44,14 @@ def add_member(group_id):
         return jsonify({'error': 'Unauthorized'}), 401
     
     data = request.get_json()
-    new_member_id = data.get('user_id')
-
-    if not new_member_id:
-        return jsonify({'error': 'Missing user_id'}), 400
-
-    conn = get_connection()
-    cursor = conn.cursor()
+    user_ids = data.get('user_ids')
+    if not user_ids or not isinstance(user_ids, list):
+        return jsonify({'error': 'user_ids must be a list of user IDs'}), 400
 
     try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
         # Check if group exists
         cursor.execute("SELECT ID FROM ExpenseGroups WHERE ID = %s", (group_id,))
         if cursor.fetchone() is None:
@@ -64,21 +63,17 @@ def add_member(group_id):
         if created_by != current_user_id:
             return jsonify({'error': 'Only group creator can add members'}), 403
 
-        # Check if new member is a friend
-        cursor.execute("""
-            SELECT 1 FROM Friends
-            WHERE (UserID = %s AND FriendID = %s)
-            OR (UserID = %s AND FriendID = %s)
-            LIMIT 1
-        """, (current_user_id, new_member_id, new_member_id, current_user_id))
-        
-        if cursor.fetchone() is None:
+        cursor.execute("SELECT FriendID FROM Friends WHERE UserID = %s", (current_user_id,))
+        friend_ids = {row[0] for row in cursor.fetchall()}
+        invalid_ids = [uid for uid in user_ids if uid not in friend_ids]
+        if invalid_ids:
+            logger.error(f'Users {invalid_ids} are not friends')
             return jsonify({'error': 'Can only add friends to groups'}), 403
 
-        cursor.execute(
-            "INSERT INTO GroupMembers (GroupID, UserID) VALUES (%s, %s)",
-            (group_id, new_member_id)
-        )
+        for user_id in user_ids:
+            cursor.execute("""
+                INSERT INTO GroupMembers (GroupID, UserID) VALUES (%s, %s)
+            """, (group_id, user_id))
         conn.commit()
         return jsonify({'message': 'User added to group'}), 201
 
