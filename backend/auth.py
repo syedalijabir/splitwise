@@ -54,6 +54,7 @@ def login():
     user = cursor.fetchone()
 
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user['PasswordHash'].encode('utf-8')):
+        logger.error(f"Invalid credentials for user: {email}")
         return jsonify({'error': 'Invalid credentials'}), 401
 
     payload = {
