@@ -73,7 +73,7 @@ def login():
             'token': token, 
             'user': {
                 'id': user['ID'], 
-                'name': user['FirstName'], 
+                'name': user['FirstName'],
                 'email': user['Email']
             }
         }

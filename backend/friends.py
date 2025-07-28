@@ -58,7 +58,7 @@ def get_friends():
 
     try:
         cursor.execute("""
-            SELECT U.ID, U.Name, U.Email
+            SELECT U.ID, U.FirstName, U.LastName, U.Email
             FROM Friends F
             JOIN Users U ON F.FriendID = U.ID
             WHERE F.UserID = %s
