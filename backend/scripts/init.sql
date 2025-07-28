@@ -43,11 +43,11 @@ CREATE TABLE IF NOT EXISTS ExpenseGroups (
     FOREIGN KEY (CreatedBy) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-INSERT INTO ExpenseGroups (Name, CreatedBy) VALUES
-('Roommates NYC', 1),
-('College Reunion Trip', 2),
-('Family Vacation', 3),
-('Office Pizza Party', 4);
+INSERT INTO ExpenseGroups (Name, CreatedBy, CreatedAt) VALUES
+('Roommates NYC', 1, '2024-01-01 10:00:00'),
+('College Reunion Trip', 2, '2024-02-01 11:00:00'),
+('Family Vacation', 3, '2024-08-12 02:37:00'),
+('Office Pizza Party', 4, '2024-11-11 11:45:00');
 
 
 CREATE TABLE IF NOT EXISTS GroupMembers (
