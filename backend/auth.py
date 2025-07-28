@@ -15,11 +15,12 @@ SECRET_KEY = os.getenv('JWT_SECRET')
 @auth.route('/signup', methods=['POST'])
 def signup():
     data = request.json
-    name = data.get('name')
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')
     email = data.get('email')
     password = data.get('password')
 
-    if not all([name, email, password]):
+    if not all([first_name, last_name, email, password]):
         return jsonify({'error': 'Missing fields'}), 400
 
     conn = get_connection()
@@ -30,7 +31,7 @@ def signup():
         return jsonify({'error': 'Email already exists'}), 400
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    cursor.execute("INSERT INTO Users (Name, Email, PasswordHash) VALUES (%s, %s, %s)", (name, email, hashed))
+    cursor.execute("INSERT INTO Users (FirstName, LastName, Email, PasswordHash) VALUES (%s, %s, %s)", (first_name, last_name, email, hashed))
     conn.commit()
 
     cursor.close()
@@ -72,7 +73,7 @@ def login():
             'token': token, 
             'user': {
                 'id': user['ID'], 
-                'name': user['Name'], 
+                'name': user['FirstName'], 
                 'email': user['Email']
             }
         }
@@ -86,6 +87,6 @@ def get_current_user():
         return jsonify({'error': 'Unauthorized'}), 401
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT ID, Name, Email FROM Users WHERE ID = %s", (current_user_id,))
+    cursor.execute("SELECT ID, FirstName, Email FROM Users WHERE ID = %s", (current_user_id,))
     user = cursor.fetchone()
     return jsonify(user)
