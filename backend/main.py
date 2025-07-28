@@ -5,6 +5,7 @@ from flask_cors import CORS
 from groups import groups
 from friends import friends
 from expenses import expenses
+from notifications import notifications
 
 from utils.logger import get_logger
 logger = get_logger(__name__)
@@ -15,6 +16,7 @@ app.register_blueprint(auth, url_prefix=URL_PREFIX)
 app.register_blueprint(groups, url_prefix=URL_PREFIX)
 app.register_blueprint(friends, url_prefix=URL_PREFIX)
 app.register_blueprint(expenses, url_prefix=URL_PREFIX)
+app.register_blueprint(notifications, url_prefix=URL_PREFIX)
 CORS(app)
 
 
