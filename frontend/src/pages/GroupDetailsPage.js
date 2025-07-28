@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import TopNav from '../components/TopNav';
 
 function GroupDetailsPage() {
   const { groupId } = useParams();
@@ -184,8 +185,9 @@ function GroupDetailsPage() {
 
 return (
   <>
+    <TopNav />
     {/* Top Header with Action Buttons */}
-    <div className="flex justify-between items-center p-8 bg-gray-100">
+    <div className="flex justify-between items-center p-8 bg-gray-100 pt-24">
       <h1 className="text-3xl font-bold text-gray-800">{groupName || 'Group Summary'}</h1>
       <div className="space-x-2">
         <button

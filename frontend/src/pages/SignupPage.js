@@ -17,7 +17,7 @@ function SignupPage() {
     const data = await res.json();
     if (res.ok) {
       alert('Signup successful!');
-      navigate('/');
+      navigate('/login');
     } else {
       alert(data.error || 'Signup failed');
     }

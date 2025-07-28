@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import TopNav from '../components/TopNav';
 
 const colorThemes = [
   'from-indigo-100 to-indigo-200',
@@ -81,7 +82,8 @@ function GroupsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 flex flex-col items-center">
-      <div className="w-full max-w-5xl flex justify-between items-center mb-8">
+      <TopNav />
+      <div className="w-full max-w-5xl flex justify-between items-center pt-16">
         <h2 className="text-3xl font-bold text-indigo-700">Your Groups</h2>
         <button
           onClick={handleCreateGroup}
@@ -91,7 +93,7 @@ function GroupsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl pt-8">
         {groups.map((group, idx) => (
           <div
             key={group.ID}
