@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function SignupPage() {
-  const [name, setName] = useState('');
+  const [first_name, setFirstName] = useState('');
+  const [last_name, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ function SignupPage() {
     const res = await fetch('http://localhost:5001/api/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ first_name, last_name, email, password })
     });
 
     const data = await res.json();
@@ -30,9 +31,16 @@ function SignupPage() {
         
         <input
           className="w-full mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          placeholder="Name"
-          value={name}
-          onChange={e => setName(e.target.value)}
+          placeholder="First Name"
+          value={first_name}
+          onChange={e => setFirstName(e.target.value)}
+        />
+
+        <input
+          className="w-full mb-4 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          placeholder="Last Name"
+          value={last_name}
+          onChange={e => setLastName(e.target.value)}
         />
 
         <input
@@ -60,7 +68,7 @@ function SignupPage() {
         <div className="mt-4 text-sm text-center text-gray-600">
           Already have an account?{' '}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/login')}
             className="text-indigo-600 hover:underline font-medium"
           >
             Login

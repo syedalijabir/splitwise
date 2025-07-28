@@ -4,6 +4,7 @@ import TopNav from '../components/TopNav';
 
 function DashboardPage() {
   const navigate = useNavigate();
+  const name = localStorage.getItem('name');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -11,7 +12,7 @@ function DashboardPage() {
       {/* Page Content */}
       <div className="flex items-center justify-center min-h-[80vh]">
         <div className="bg-white shadow-xl rounded-xl p-8 w-full max-w-md text-center">
-          <h2 className="text-2xl font-bold mb-8 text-indigo-700">Welcome to Splitwise</h2>
+          <h2 className="text-2xl font-bold mb-8 text-indigo-700">Welcome {name}! 🎉</h2>
 
           <div className="flex flex-col gap-4">
             <button

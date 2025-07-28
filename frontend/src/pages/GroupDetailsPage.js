@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import TopNav from '../components/TopNav';
 
 function GroupDetailsPage() {
+  const navigate = useNavigate();
   const { groupId } = useParams();
   const location = useLocation();
   const [groupName, setGroupName] = useState(location.state?.groupName || '');
@@ -36,7 +38,7 @@ function GroupDetailsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      setCurrentUserName(data.Name);
+      setCurrentUserName(data.FirstName);
       setCurrentUserId(data.ID);
     };
 
@@ -178,6 +180,34 @@ function GroupDetailsPage() {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!window.confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`http://localhost:5001/api/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+        });
+
+        const data = await res.text();
+        
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to delete group');
+        }
+
+        navigate('/groups');
+    } catch (err) {
+        console.error('Error deleting group:', err);
+        alert('Failed to delete group. Please try again.');
+    }
+    };
+
   // Create a combined sorted list of expenses and settlements newest first
   const combinedActivity = [...expenses.map(e => ({ ...e, type: 'expense' })), 
                             ...settlements.map(s => ({ ...s, type: 'settlement' }))];
@@ -187,22 +217,45 @@ return (
   <>
     <TopNav />
     {/* Top Header with Action Buttons */}
-    <div className="flex justify-between items-center p-8 bg-gray-100 pt-24">
-      <h1 className="text-3xl font-bold text-gray-800">{groupName || 'Group Summary'}</h1>
-      <div className="space-x-2">
+    <div className="p-8 bg-gray-100 pt-24">
+    <div className="flex justify-between items-start">
+        {/* Left Column: Group Name + Member Tags */}
+        <div>
+        <h1 className="text-3xl font-bold text-gray-800">{groupName || 'Group Summary'}</h1>
+        <div className="flex flex-wrap gap-2 mt-2">
+            {groupMembers.map((member) => (
+            <span
+                key={member.ID}
+                className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-medium"
+            >
+                {member.FirstName}
+            </span>
+            ))}
+        </div>
+        </div>
+
+        {/* Right Column: Buttons */}
+        <div className="space-x-2">
         <button
-          onClick={() => setShowExpenseForm(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-semibold"
+            onClick={() => setShowExpenseForm(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-semibold"
         >
-          + Add Expense
+            + Add Expense
         </button>
         <button
-          onClick={() => setShowSettlementForm(true)}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
+            onClick={() => setShowSettlementForm(true)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
         >
-          + Add Settlement
+            + Add Settlement
         </button>
-      </div>
+        <button
+            onClick={handleDeleteGroup}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+        >
+            Delete Group
+        </button>
+        </div>
+    </div>
     </div>
 
     {/* Main Content Section */}
@@ -254,7 +307,7 @@ return (
 
       {/* Right Panel: Group Activity */}
       <div className="w-1/2 bg-white p-6 rounded shadow">
-        <h2 className="text-2xl font-bold text-indigo-700 mb-6">Group Activity</h2>
+        <h2 className="text-2xl font-bold text-indigo-700 mb-6">Payment History</h2>
 
         {/* Activity list */}
         <div className="space-y-6 max-h-[60vh] overflow-y-auto">
@@ -332,7 +385,7 @@ return (
             <option value="" disabled>Select who paid</option>
             {groupMembers.map((member) => (
               <option key={member.ID} value={member.ID}>
-                {member.Name}
+                {member.FirstName}
               </option>
             ))}
           </select>
@@ -358,7 +411,7 @@ return (
             <option value="" disabled>Select payer</option>
             {groupMembers.map((member) => (
               <option key={member.ID} value={member.ID}>
-                {member.Name}
+                {member.FirstName}
               </option>
             ))}
           </select>
@@ -371,7 +424,7 @@ return (
             <option value="" disabled>Select payee</option>
             {groupMembers.map((member) => (
               <option key={member.ID} value={member.ID}>
-                {member.Name}
+                {member.FirstName}
               </option>
             ))}
           </select>

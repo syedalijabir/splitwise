@@ -5,8 +5,9 @@ function TopNav() {
   const navigate = useNavigate();
 
   const handleDashboard = () => navigate('/dashboard');
+  const handleNotifications = () => navigate('/notifications');
   const handleSignOut = () => {
-    localStorage.clear()
+    localStorage.clear();
     navigate('/login');
   };
 
@@ -24,6 +25,12 @@ function TopNav() {
           className="text-indigo-600 hover:text-indigo-800 font-medium"
         >
           Dashboard
+        </button>
+        <button
+          onClick={handleNotifications}
+          className="text-indigo-600 hover:text-indigo-800 font-medium"
+        >
+          Notifications
         </button>
         <button
           onClick={handleSignOut}

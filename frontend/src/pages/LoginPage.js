@@ -16,6 +16,7 @@ function LoginPage() {
     const data = await res.json();
     if (res.ok) {
       localStorage.setItem('token', data.token);
+      localStorage.setItem('name', data.user.name);
       navigate('/dashboard');
     } else {
       alert(data.error || 'Login failed');
