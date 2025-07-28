@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from utils.db import get_connection
 from utils.auth import get_user_id_from_token
+from utils.helper import send_notification, log_activity
 import mysql.connector
 from utils.logger import get_logger
 
@@ -53,6 +54,9 @@ def add_member(group_id):
     if not user_ids or not isinstance(user_ids, list):
         return jsonify({'error': 'user_ids must be a list of user IDs'}), 400
 
+    for user_id in user_ids:
+        send_notification(user_id, 'invite', group_id, 'Click for details')
+
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -80,6 +84,10 @@ def add_member(group_id):
                 INSERT INTO GroupMembers (GroupID, UserID) VALUES (%s, %s)
             """, (group_id, user_id))
         conn.commit()
+
+        for user_id in user_ids:
+            log_activity(group_id, user_id, 'joined_group', 'Click for details')
+
         return jsonify({'message': 'User added to group'}), 201
 
     except mysql.connector.IntegrityError as e:
@@ -104,7 +112,7 @@ def get_user_groups():
 
         query = """
         (
-            SELECT g.ID, g.Name, g.CreatedAt, u.Name AS CreatedBy
+            SELECT g.ID, g.Name, g.CreatedAt, u.FirstName AS CreatedBy
             FROM ExpenseGroups g
             JOIN GroupMembers gm ON g.ID = gm.GroupID
             JOIN Users u ON g.CreatedBy = u.ID
@@ -112,7 +120,7 @@ def get_user_groups():
         )
         UNION
         (
-            SELECT g.ID, g.Name, g.CreatedAt, u.Name AS CreatedBy
+            SELECT g.ID, g.Name, g.CreatedAt, u.FirstName AS CreatedBy
             FROM ExpenseGroups g
             JOIN Users u ON g.CreatedBy = u.ID
             WHERE g.CreatedBy = %s
@@ -158,7 +166,7 @@ def get_group_members(group_id):
             return jsonify({'error': 'Forbidden: You are not a member of this group'}), 403
 
         cursor.execute("""
-            SELECT u.ID, u.Name, u.Email, gm.AddedAt
+            SELECT u.ID, u.FirstName, u.Email, gm.AddedAt
             FROM GroupMembers gm
             JOIN Users u ON gm.UserID = u.ID
             WHERE gm.GroupID = %s
@@ -191,7 +199,7 @@ def add_expense(group_id):
         return jsonify({'error': 'Name, amount and paid_by are required fields'}), 400
 
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
     try:
         cursor.execute("SELECT ID FROM ExpenseGroups WHERE ID = %s", (group_id,))
@@ -217,8 +225,24 @@ def add_expense(group_id):
             INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
             VALUES (%s, %s, %s, %s, %s)
         """, (group_id, paid_by, name, description, amount))
-        conn.commit()
 
+        log_activity(group_id, paid_by, 'created_expense', description)
+        logger.info("Activity logged successfully.")
+
+        cursor.execute("""
+            SELECT UserID
+            FROM GroupMembers
+            WHERE GroupID = %s AND UserID != %s
+        """, (group_id, paid_by))
+        other_members = cursor.fetchall()
+        logger.info(f"other_members: {other_members}")
+        for member in other_members:
+            user_id = member['UserID'] if isinstance(member, dict) else member[0]
+            send_notification(user_id, 'settlement', group_id, 'Click for details')
+
+        logger.info("Notifications sent successfully.")
+
+        conn.commit()
         return jsonify({'message': 'Expense added successfully'}), 201
 
     except Exception as e:
@@ -257,7 +281,7 @@ def get_group_expenses(group_id):
         cursor.execute("""
             SELECT
                 e.ID, e.Name, e.Description, e.Amount, e.CreatedAt,
-                u.Name AS PaidByName
+                u.FirstName AS PaidByName
             FROM Expenses e
             JOIN Users u ON e.PaidBy = u.ID
             WHERE e.GroupID = %s
@@ -267,7 +291,7 @@ def get_group_expenses(group_id):
 
         # Get settlements in group
         cursor.execute("""
-            SELECT s.Amount, s.CreatedAt, from_user.Name AS FromName, to_user.Name AS ToName
+            SELECT s.Amount, s.CreatedAt, from_user.FirstName AS FromName, to_user.FirstName AS ToName
             FROM Settlements s
             JOIN Users from_user ON s.FromUserID = from_user.ID
             JOIN Users to_user ON s.ToUserID = to_user.ID
@@ -309,13 +333,13 @@ def get_group_balances(group_id):
 
         # Get all group members
         cursor.execute("""
-            SELECT u.ID, u.Name FROM GroupMembers gm
+            SELECT u.ID, u.FirstName FROM GroupMembers gm
             JOIN Users u ON gm.UserID = u.ID
             WHERE gm.GroupID = %s
         """, (group_id,))
         members = cursor.fetchall()
         member_ids = [m['ID'] for m in members]
-        id_to_name = {m['ID']: m['Name'] for m in members}
+        id_to_name = {m['ID']: m['FirstName'] for m in members}
 
         balances = {
             payer: {
@@ -410,12 +434,56 @@ def settle_between_users(group_id):
         """, (group_id, from_user, to_user, amount))
 
         conn.commit()
+        log_activity(group_id, from_user, 'settled_debt', 'Click for details')
+        send_notification(to_user, 'settlement', group_id, 'Click for details')
         return jsonify({'message': 'Settlement recorded'}), 201
 
     except Exception as e:
         conn.rollback()
         logger.error(f"Error settling: {str(e)}")
         return jsonify({'error': 'Internal Server Error'}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@groups.route('/groups/<int:group_id>/activity', methods=['GET'])
+def get_group_activity(group_id):
+    current_user_id = get_user_id_from_token()
+    if not current_user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT AF.ID, AF.ActionType, AF.Description, AF.CreatedAt, U.FirstName
+        FROM ActivityFeed AF
+        LEFT JOIN Users U ON AF.UserID = U.ID
+        WHERE GroupID = %s
+        ORDER BY AF.CreatedAt DESC
+    """, (group_id,))
+    activities = cursor.fetchall()
+    return jsonify(activities)
+
+
+@groups.route('/groups/<int:group_id>', methods=['DELETE'])
+def delete_group(group_id):
+    current_user_id = get_user_id_from_token()
+    if not current_user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM ExpenseGroups WHERE ID = %s", (group_id,))
+
+        conn.commit()
+        return jsonify({"message": "Group deleted successfully"}), 200
+
+    except Exception as e:
+        logger.error("Error deleting group:", e)
+        return jsonify({"error": "Internal server error"}), 500
     finally:
         cursor.close()
         conn.close()
