@@ -27,13 +27,18 @@ def create_group():
             "INSERT INTO ExpenseGroups (Name, CreatedBy) VALUES (%s, %s)",
             (group_name, current_user_id)
         )
-        conn.commit()
         group_id = cursor.lastrowid
+
+        cursor.execute(
+            "INSERT INTO GroupMembers (GroupID, UserID) VALUES (%s, %s)",
+            (group_id, current_user_id)
+        )
+        conn.commit()
         cursor.close()
         conn.close()
         return jsonify({'message': 'Group created', 'group_id': group_id}), 201
     except Exception as e:
-        print("DB error:", e)
+        logger.error("DB error:", e)
         return jsonify({'error': 'Database error'}), 500
 
 
@@ -85,7 +90,6 @@ def add_member(group_id):
     finally:
         cursor.close()
         conn.close()
-
 
 
 @groups.route("/groups", methods=["GET"])
@@ -232,33 +236,55 @@ def get_group_expenses(group_id):
     if not current_user_id:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
-        # Verify user is in the group
-        cursor.execute("""
-            SELECT 1 FROM GroupMembers
-            WHERE GroupID = %s AND UserID = %s
-        """, (group_id, current_user_id))
-        if cursor.fetchone() is None:
-            return jsonify({'error': 'Forbidden: You are not a member of this group'}), 403
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT e.ID, e.Name, e.Description, e.Amount, e.CreatedAt,
-                   u.Name AS PaidBy
+            SELECT 1
+            FROM ExpenseGroups
+            WHERE ID = %s AND CreatedBy = %s
+            UNION
+            SELECT 1
+            FROM GroupMembers
+            WHERE GroupID = %s AND UserID = %s
+        """, (group_id, current_user_id, group_id, current_user_id))
+
+        if cursor.fetchone() is None:
+            return jsonify({'error': 'Unauthorized: User not a member or creator of this group'}), 403
+
+        # Get expenses in group
+        cursor.execute("""
+            SELECT
+                e.ID, e.Name, e.Description, e.Amount, e.CreatedAt,
+                u.Name AS PaidByName
             FROM Expenses e
             JOIN Users u ON e.PaidBy = u.ID
             WHERE e.GroupID = %s
             ORDER BY e.CreatedAt DESC
         """, (group_id,))
-        
         expenses = cursor.fetchall()
-        return jsonify(expenses), 200
+
+        # Get settlements in group
+        cursor.execute("""
+            SELECT s.Amount, s.CreatedAt, from_user.Name AS FromName, to_user.Name AS ToName
+            FROM Settlements s
+            JOIN Users from_user ON s.FromUserID = from_user.ID
+            JOIN Users to_user ON s.ToUserID = to_user.ID
+            WHERE s.GroupID = %s
+            ORDER BY s.CreatedAt DESC
+        """, (group_id,))
+        settlements = cursor.fetchall()
+
+        return jsonify({
+            'expenses': expenses,
+            'settlements': settlements
+        })
 
     except Exception as e:
-        logger.error(f"Error fetching expenses for group {group_id}: {str(e)}")
+        logger.error(f"Error fetching expenses/settlements: {str(e)}")
         return jsonify({'error': 'Internal Server Error'}), 500
+
     finally:
         cursor.close()
         conn.close()
