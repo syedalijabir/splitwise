@@ -34,11 +34,11 @@ def get_user_expenses_across_groups():
             SELECT
                 e.ID AS EntryID,
                 'expense' AS Type,
-                e.Name,
+                e.FirstName,
                 e.Description,
                 e.Amount,
                 e.CreatedAt,
-                u.Name AS PaidBy,
+                u.FirstName AS PaidBy,
                 NULL AS FromUser,
                 NULL AS ToUser,
                 g.Name AS GroupName
@@ -54,13 +54,13 @@ def get_user_expenses_across_groups():
             SELECT
                 s.ID AS EntryID,
                 'settlement' AS Type,
-                NULL AS Name,
-                CONCAT('Settlement from ', u1.Name, ' to ', u2.Name) AS Description,
+                NULL AS FirstName,
+                CONCAT('Settlement from ', u1.FirstName, ' to ', u2.FirstName) AS Description,
                 s.Amount,
                 s.CreatedAt,
                 NULL AS PaidBy,
-                u1.Name AS FromUser,
-                u2.Name AS ToUser,
+                u1.FirstName AS FromUser,
+                u2.FirstName AS ToUser,
                 g.Name AS GroupName
             FROM Settlements s
             JOIN Users u1 ON s.FromUserID = u1.ID
@@ -111,7 +111,7 @@ def get_user_global_balance():
 
         # all members in those groups
         cursor.execute(f"""
-            SELECT gm.GroupID, gm.UserID, u.Name
+            SELECT gm.GroupID, gm.UserID, u.FirstName
             FROM GroupMembers gm
             JOIN Users u ON gm.UserID = u.ID
             WHERE gm.GroupID IN ({format_strings})
@@ -123,7 +123,7 @@ def get_user_global_balance():
         for row in member_data:
             gid = row['GroupID']
             uid = row['UserID']
-            uname = row['Name']
+            uname = row['FirstName']
             user_names[uid] = uname
             group_members.setdefault(gid, []).append(uid)
 
