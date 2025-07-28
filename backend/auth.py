@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from utils.db import get_connection
+from utils.auth import get_user_id_from_token
 import bcrypt
 import jwt
 import os
@@ -76,3 +77,15 @@ def login():
             }
         }
     )
+
+
+@auth.route('/me', methods=['GET'])
+def get_current_user():
+    current_user_id = get_user_id_from_token()
+    if not current_user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT ID, Name, Email FROM Users WHERE ID = %s", (current_user_id,))
+    user = cursor.fetchone()
+    return jsonify(user)
