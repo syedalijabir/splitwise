@@ -476,13 +476,23 @@ def delete_group(group_id):
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("DELETE FROM ExpenseGroups WHERE ID = %s", (group_id,))
+        # Check if the current user is the creator of the group
+        cursor.execute("SELECT CreatedBy FROM ExpenseGroups WHERE ID = %s", (group_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": "Group not found"}), 404
 
+        created_by = row[0]
+        if created_by != current_user_id:
+            return jsonify({"error": "Only the group creator can delete the group"}), 403
+
+        cursor.execute("DELETE FROM ExpenseGroups WHERE ID = %s", (group_id,))
         conn.commit()
+
         return jsonify({"message": "Group deleted successfully"}), 200
 
     except Exception as e:
-        logger.error("Error deleting group:", e)
+        logger.error(f"Error deleting group: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
     finally:
         cursor.close()
