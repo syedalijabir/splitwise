@@ -141,7 +141,7 @@ function CreateGroupPage() {
                   onClick={() => handleSelectFriend(friend)}
                   className="px-4 py-2 hover:bg-indigo-50 cursor-pointer"
                 >
-                  {friend.Name} <span className="text-gray-500 text-sm">({friend.Email})</span>
+                  {friend.FirstName} <span className="text-gray-500 text-sm"> - {friend.Email}</span>
                 </li>
               ))}
             </ul>
@@ -155,7 +155,7 @@ function CreateGroupPage() {
                 key={friend.ID}
                 className="flex items-center bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm"
               >
-                {friend.Name}
+                {friend.FirstName}
                 <button
                   onClick={() => handleRemoveFriend(friend.ID)}
                   className="ml-2 text-indigo-500 hover:text-indigo-700"
