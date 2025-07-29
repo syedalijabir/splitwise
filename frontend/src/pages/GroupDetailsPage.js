@@ -197,7 +197,6 @@ function GroupDetailsPage() {
         const data = await res.text();
         
         if (!res.ok) {
-            const data = await res.json();
             throw new Error(data.error || 'Failed to delete group');
         }
 
