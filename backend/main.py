@@ -6,6 +6,8 @@ from groups import groups
 from friends import friends
 from expenses import expenses
 from notifications import notifications
+from categories import categories
+from payment_methods import payment_methods
 
 from utils.logger import get_logger
 logger = get_logger(__name__)
@@ -17,6 +19,8 @@ app.register_blueprint(groups, url_prefix=URL_PREFIX)
 app.register_blueprint(friends, url_prefix=URL_PREFIX)
 app.register_blueprint(expenses, url_prefix=URL_PREFIX)
 app.register_blueprint(notifications, url_prefix=URL_PREFIX)
+app.register_blueprint(categories, url_prefix=URL_PREFIX)
+app.register_blueprint(payment_methods, url_prefix=URL_PREFIX)
 CORS(app)
 
 
