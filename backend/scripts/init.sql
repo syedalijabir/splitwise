@@ -55,6 +55,23 @@ INSERT INTO Users (FirstName, LastName, Email, PasswordHash) VALUES
 ('Nathan', 'Morris', 'nathan@example.com', @default_pass_hash),
 ('Ophelia', 'Murphy', 'ophelia@example.com', @default_pass_hash);
 
+CREATE TABLE IF NOT EXISTS Categories (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL UNIQUE
+);
+
+INSERT INTO Categories (Name) VALUES 
+('Food'),
+('Travel'),
+('Rent'),
+('Utilities'),
+('Entertainment'),
+('Groceries'),
+('Health'),
+('Education'),
+('Miscellaneous');
+
+
 CREATE TABLE IF NOT EXISTS ExpenseGroups (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     Name VARCHAR(100) NOT NULL,
@@ -285,10 +302,12 @@ CREATE TABLE IF NOT EXISTS Expenses (
     PaidBy INT NOT NULL,
     Name VARCHAR(100) NOT NULL,
     Description TEXT,
+    CategoryID INT NOT NULL DEFAULT 9, -- default misc.
     Amount DECIMAL(10,2) NOT NULL,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (PaidBy) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (PaidBy) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (CategoryID) REFERENCES Categories(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Roommates NYC (GroupID = 1), members: Alice(1), Eve(5), Isabel(9), Mia(13)
@@ -395,6 +414,21 @@ INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount, CreatedAt) VAL
 (17, 20, 'Equipment Rental', 'Skis and snowboards', 350.00, '2024-12-06 09:30:00'),
 (17, 35, 'Lodge Dinner', 'Group apres-ski meal', 220.00, '2024-12-06 19:00:00');
 
+CREATE TABLE IF NOT EXISTS PaymentMethods (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Type VARCHAR(50) NOT NULL UNIQUE
+);
+
+INSERT INTO PaymentMethods (Type) VALUES
+('Cash'),
+('Credit Card'),
+('Debit Card'),
+('PayPal'),
+('Bank Transfer'),
+('Venmo'),
+('Zelle');
+
+
 CREATE TABLE IF NOT EXISTS Settlements (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     GroupID INT NOT NULL,
@@ -402,9 +436,11 @@ CREATE TABLE IF NOT EXISTS Settlements (
     ToUserID INT NOT NULL,
     Amount DECIMAL(10,2) NOT NULL,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PMID INT NOT NULL DEFAULT 7,
     FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (FromUserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (ToUserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (ToUserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (PMID) REFERENCES PaymentMethods(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Settlements for Roommates NYC (GroupID = 1)
@@ -521,8 +557,8 @@ CREATE TABLE Notifications (
     Message TEXT NOT NULL,
     IsRead BOOLEAN DEFAULT FALSE,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (UserID) REFERENCES Users(ID),
-    FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID)
+    FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 
@@ -533,7 +569,7 @@ CREATE TABLE ActivityFeed (
     ActionType ENUM('created_expense', 'updated_expense', 'settled_debt', 'joined_group') NOT NULL,
     Description TEXT NOT NULL,
     CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID),
-    FOREIGN KEY (UserID) REFERENCES Users(ID)
+    FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
