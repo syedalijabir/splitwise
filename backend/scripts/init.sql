@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS ExpenseGroups (
     FOREIGN KEY (CreatedBy) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX created_by ON ExpenseGroups(CreatedBy);
+
 CREATE TABLE IF NOT EXISTS GroupMembers (
     GroupID INT NOT NULL,
     UserID INT NOT NULL,
@@ -310,6 +312,10 @@ CREATE TABLE IF NOT EXISTS Expenses (
     FOREIGN KEY (CategoryID) REFERENCES Categories(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX group_id ON Expenses (GroupID);
+CREATE INDEX paid_by ON Expenses (PaidBy);
+CREATE INDEX category_id ON Expenses (CategoryID);
+
 -- Roommates NYC (GroupID = 1), members: Alice(1), Eve(5), Isabel(9), Mia(13)
 INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
 VALUES
@@ -443,6 +449,11 @@ CREATE TABLE IF NOT EXISTS Settlements (
     FOREIGN KEY (PMID) REFERENCES PaymentMethods(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX group_id ON Settlements (GroupID);
+CREATE INDEX from_user ON Settlements (FromUserID);
+CREATE INDEX to_user ON Settlements (ToUserID);
+CREATE INDEX payment_method ON Settlements (PMID);
+
 -- Settlements for Roommates NYC (GroupID = 1)
 -- Eve (5) paid Alice (1) back $30
 INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
@@ -561,6 +572,8 @@ CREATE TABLE Notifications (
     FOREIGN KEY (GroupID) REFERENCES ExpenseGroups(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX userid ON Notifications (UserID);
+CREATE INDEX userid_isread ON Notifications (UserID, IsRead);
 
 CREATE TABLE ActivityFeed (
     ID INT AUTO_INCREMENT PRIMARY KEY,
@@ -573,3 +586,5 @@ CREATE TABLE ActivityFeed (
     FOREIGN KEY (UserID) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE INDEX userid ON ActivityFeed (UserID);
+CREATE INDEX groupid_createdat ON ActivityFeed (GroupID, CreatedAt DESC);
