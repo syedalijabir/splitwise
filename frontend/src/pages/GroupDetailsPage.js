@@ -23,12 +23,16 @@ function GroupDetailsPage() {
   const [expenseDescription, setExpenseDescription] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expensePaidBy, setExpensePaidBy] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   // Form inputs for settlement
   const [settleFromUser, setSettleFromUser] = useState(null);
   const [settleToUser, setSettleToUser] = useState(null);
   const [settleAmount, setSettleAmount] = useState('');
   const [groupMembers, setGroupMembers] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -76,10 +80,36 @@ function GroupDetailsPage() {
         }
     };
 
-    fetchUser();
-    fetchBalances();
-    fetchExpenses();
-    fetchGroupMembers();
+    const fetchCategories = async () => {
+    try {
+        const res = await fetch('http://localhost:5001/api/categories', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setCategories(data);
+    } catch (err) {
+        console.error('Failed to fetch categories:', err);
+    }
+    };
+
+    const fetchPaymentMethods = async () => {
+    try {
+        const res = await fetch('http://localhost:5001/api/payment_methods', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setPaymentMethods(data);
+    } catch (err) {
+        console.error('Failed to fetch payment methods:', err);
+    }
+    };
+
+  fetchUser();
+  fetchBalances();
+  fetchExpenses();
+  fetchGroupMembers();
+  fetchCategories();
+  fetchPaymentMethods();
   }, [groupId]);
 
   const owes = balances.filter(b => b.from === currentUserName);
@@ -120,7 +150,8 @@ function GroupDetailsPage() {
           name: expenseName,
           description: expenseDescription,
           amount: parseFloat(expenseAmount),
-          paid_by: expensePaidBy
+          paid_by: expensePaidBy,
+          category_id: selectedCategoryId
         })
       });
       const data = await res.json();
@@ -161,7 +192,8 @@ function GroupDetailsPage() {
         body: JSON.stringify({
           from_user_id: settleFromUser,
           to_user_id: settleToUser,
-          amount: parseFloat(settleAmount)
+          amount: parseFloat(settleAmount),
+          payment_method: selectedPaymentMethodId
         })
       });
       const data = await res.json();
@@ -388,6 +420,18 @@ return (
               </option>
             ))}
           </select>
+          <select
+            className="w-full mb-4 p-2 border rounded"
+            value={selectedCategoryId || ''}
+            onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+            >
+            <option value="" disabled>Select category</option>
+            {categories.map((cat) => (
+                <option key={cat.ID} value={cat.ID}>
+                {cat.Name}
+                </option>
+            ))}
+            </select>
 
           <div className="flex justify-end space-x-4">
             <button onClick={() => setShowExpenseForm(false)} className="px-4 py-2 rounded border">Cancel</button>
@@ -427,7 +471,18 @@ return (
               </option>
             ))}
           </select>
-
+          <select
+            className="w-full mb-4 p-2 border rounded"
+            value={selectedPaymentMethodId || ''}
+            onChange={(e) => setSelectedPaymentMethodId(Number(e.target.value))}
+            >
+            <option value="" disabled>Select Payment Method</option>
+            {paymentMethods.map((pm) => (
+                <option key={pm.ID} value={pm.ID}>
+                {pm.Type}
+                </option>
+            ))}
+            </select>
           <input
             type="number"
             placeholder="Amount"
