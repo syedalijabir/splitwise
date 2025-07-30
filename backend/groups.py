@@ -194,6 +194,7 @@ def add_expense(group_id):
     description = data.get('description', None)
     amount = data.get('amount')
     paid_by = data.get('paid_by')
+    category_id = data.get('category_id')
 
     if not name or not amount or not paid_by:
         return jsonify({'error': 'Name, amount and paid_by are required fields'}), 400
@@ -222,9 +223,9 @@ def add_expense(group_id):
             return jsonify({'error': 'Paid_by user is not a member of the group'}), 400
 
         cursor.execute("""
-            INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (group_id, paid_by, name, description, amount))
+            INSERT INTO Expenses (GroupID, PaidBy, Name, Description, Amount, CategoryID)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (group_id, paid_by, name, description, amount, category_id))
 
         log_activity(group_id, paid_by, 'created_expense', description)
         logger.info("Activity logged successfully.")
@@ -411,6 +412,7 @@ def settle_between_users(group_id):
     from_user = data.get('from_user_id')
     to_user = data.get('to_user_id')
     amount = data.get('amount')
+    payment_method = data.get('payment_method')
 
     if not from_user or not to_user or not amount:
         return jsonify({'error': 'Missing fields'}), 400
@@ -429,9 +431,9 @@ def settle_between_users(group_id):
             return jsonify({'error': 'Both users must be in the group'}), 400
 
         cursor.execute("""
-            INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount)
-            VALUES (%s, %s, %s, %s)
-        """, (group_id, from_user, to_user, amount))
+            INSERT INTO Settlements (GroupID, FromUserID, ToUserID, Amount, PMID)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (group_id, from_user, to_user, amount, payment_method))
 
         conn.commit()
         log_activity(group_id, from_user, 'settled_debt', 'Click for details')
