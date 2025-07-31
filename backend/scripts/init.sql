@@ -55,6 +55,21 @@ INSERT INTO Users (FirstName, LastName, Email, PasswordHash) VALUES
 ('Nathan', 'Morris', 'nathan@example.com', @default_pass_hash),
 ('Ophelia', 'Murphy', 'ophelia@example.com', @default_pass_hash);
 
+-- Users for testing index
+SET SESSION cte_max_recursion_depth = 100000;
+INSERT INTO Users (FirstName, LastName, Email, PasswordHash)
+WITH RECURSIVE seq AS (
+    SELECT 1 AS n
+    UNION ALL
+    SELECT n + 1 FROM seq WHERE n < 100000
+)
+SELECT
+    CONCAT('User_', n) AS FirstName,
+    CONCAT('Lastname_', n) AS LastName,
+    CONCAT('user', n, '@example.com') AS Email,
+    @default_pass_hash AS PasswordHash
+FROM seq;
+
 CREATE TABLE IF NOT EXISTS Categories (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     Name VARCHAR(100) NOT NULL UNIQUE
@@ -80,7 +95,7 @@ CREATE TABLE IF NOT EXISTS ExpenseGroups (
     FOREIGN KEY (CreatedBy) REFERENCES Users(ID) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX created_by ON ExpenseGroups(CreatedBy);
+-- CREATE INDEX created_by ON ExpenseGroups(CreatedBy);
 
 CREATE TABLE IF NOT EXISTS GroupMembers (
     GroupID INT NOT NULL,
@@ -97,6 +112,17 @@ INSERT INTO ExpenseGroups (Name, CreatedBy, CreatedAt) VALUES
 ('Family Vacation', 3, '2024-08-12 02:37:00'),
 ('Office Pizza Party', 4, '2024-11-11 11:45:00');
 
+-- Performance testing
+INSERT INTO ExpenseGroups (Name, CreatedBy)
+WITH RECURSIVE seq AS (
+    SELECT 1 AS n
+    UNION ALL
+    SELECT n + 1 FROM seq WHERE n < 100000
+)
+SELECT
+    CONCAT('perf_group_', n) AS Name,
+    99959 AS CreatedBy
+FROM seq;
 
 INSERT INTO ExpenseGroups (Name, CreatedBy, CreatedAt) VALUES
 ('Summer Music Festival', 5, '2024-05-15 09:30:00'),
