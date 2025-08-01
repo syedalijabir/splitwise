@@ -31,7 +31,7 @@ def signup():
         return jsonify({'error': 'Email already exists'}), 400
 
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    cursor.execute("INSERT INTO Users (FirstName, LastName, Email, PasswordHash) VALUES (%s, %s, %s)", (first_name, last_name, email, hashed))
+    cursor.execute("INSERT INTO Users (FirstName, LastName, Email, PasswordHash) VALUES (%s, %s, %s, %s)", (first_name, last_name, email, hashed))
     conn.commit()
 
     cursor.close()
